@@ -251,33 +251,36 @@ export const api = {
 
   chat: {
     sendMessage: async (message: string) => {
-      // Local rule-based stub — backend has no chat endpoint.
-      await delay(800);
+      if (await probe()) {
+        try {
+          const userId = await ensureUserId();
+          const r = await fetchJson('/api/chat', {
+            method: 'POST',
+            body: JSON.stringify({ userId, message }),
+          });
+          return r;
+        } catch (e) {
+          console.warn('[mockApi.chat] fallback', e);
+        }
+      }
+      // offline / fallback
+      await delay(400);
       const m = message.toLowerCase();
       if (m.includes('score') && m.includes('drop')) {
         return {
           text:
-            "Listen up! Your Eco-Score dropped because you left 45 tabs open overnight while streaming a 4K fireplace video. That's literally burning coal to watch fake fire. Close those tabs and we'll talk.",
+            "Your eco-score is shaped by threshold compliance, week-over-week improvement, and absolute usage. Look at your daily threshold meter — that's almost always the culprit.",
           timestamp: new Date().toISOString(),
         };
       }
       if (m.includes('hi') || m.includes('hello')) {
         return {
-          text:
-            "I'm your AI Eco-Coach. I don't do small talk. I do carbon reduction. Don't mess up your streak today. What do you need?",
-          timestamp: new Date().toISOString(),
-        };
-      }
-      if (m.includes('help')) {
-        return {
-          text:
-            "Check your Action Center. I've queued AI suggestions that will save you money and CO₂ today. Execute them.",
+          text: "I'm your AI Eco-Coach. Ask me about your score, streak, threshold, or recommendations.",
           timestamp: new Date().toISOString(),
         };
       }
       return {
-        text:
-          'Every MB you download has a carbon cost. Stop doomscrolling and start optimising. Your footprint is higher than your peers this week.',
+        text: 'Backend unreachable — start the API to see live coaching.',
         timestamp: new Date().toISOString(),
       };
     },

@@ -1,0 +1,26 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: carbontwin-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  backend:
+    build: ./backend
+    container_name: carbontwin-api
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    environment:
+      PORT: 4000
+      MONGO_URI: mongodb://mongo:27017/carbon_twin
+      USE_MEMORY_DB: "false"
+      CORS_ORIGIN: http://localhost:5173
+    ports:
+      - "4000:4000"
+
+volumes:
+  mongo_data:

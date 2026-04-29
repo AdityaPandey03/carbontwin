@@ -9,6 +9,8 @@ import { simulate } from '../controllers/simulationController';
 import { getLeaderboard } from '../controllers/leaderboardController';
 import { getTeamView } from '../controllers/teamController';
 import { listUsers, createUser, getUser } from '../controllers/userController';
+import { handleChat } from '../controllers/chatController';
+import { exportActivitiesCsv } from '../controllers/exportController';
 
 const r = Router();
 
@@ -46,5 +48,11 @@ r.get('/leaderboard', getLeaderboard);
 
 // team / company
 r.get('/team/:company', getTeamView);
+
+// AI chat coach
+r.post('/chat', handleChat);
+
+// CSV export
+r.get('/export/:userId/csv', exportActivitiesCsv);
 
 export default r;
