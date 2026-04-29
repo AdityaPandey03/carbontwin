@@ -19,15 +19,36 @@ export interface AuthUser {
   badges: string[];
 }
 
-const post = async (path: string, body: unknown) => {
-  const res = await fetch(`${API_URL}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
-  return data;
+/**
+ * POST with retry-on-network-error.
+ * Render's free dyno can take ~30 s to wake on the first request after idle;
+ * the browser fetch occasionally errors out as "Failed to fetch" when the
+ * connection is slow to establish. We absorb that by retrying once after a
+ * short wait (which gives the dyno time to come up) before bubbling the error.
+ */
+const post = async (path: string, body: unknown, attempt = 0): Promise<any> => {
+  try {
+    const res = await fetch(`${API_URL}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+    return data;
+  } catch (e: any) {
+    const isNetwork =
+      e?.name === 'TypeError' ||
+      String(e?.message || '').toLowerCase().includes('failed to fetch') ||
+      String(e?.message || '').toLowerCase().includes('network');
+    if (isNetwork && attempt < 2) {
+      // Best-effort wake the dyno, then wait a bit and retry.
+      fetch(`${API_URL}/health`).catch(() => {});
+      await new Promise((r) => setTimeout(r, 6000 + attempt * 4000));
+      return post(path, body, attempt + 1);
+    }
+    throw e;
+  }
 };
 
 export const authStore = {
