@@ -28,11 +28,22 @@ export function SignupPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
+    const wakingId = setTimeout(
+      () => toast.message('Waking up the API… this takes ~30s on first request'),
+      4000,
+    );
     try {
       await signup(name, email, password, company || undefined);
+      clearTimeout(wakingId);
       toast.success('Welcome to CarbonTwin');
     } catch (err: any) {
-      toast.error(err.message || 'Signup failed');
+      clearTimeout(wakingId);
+      const msg = err.message || 'Signup failed';
+      if (msg.toLowerCase().includes('failed to fetch')) {
+        toast.error('Server is waking up — wait a few seconds and try again');
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setBusy(false);
     }

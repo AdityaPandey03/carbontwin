@@ -32,30 +32,41 @@ export function LoginPage() {
     if (user) navigate(redirectTo, { replace: true });
   }, [user, navigate, redirectTo]);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const wrap = async (fn: () => Promise<void>) => {
     setBusy(true);
+    const wakingId = setTimeout(
+      () => toast.message('Waking up the API… this takes ~30s on first request'),
+      4000,
+    );
     try {
-      await login(email, password);
-      toast.success('Welcome back');
+      await fn();
+      clearTimeout(wakingId);
     } catch (err: any) {
-      toast.error(err.message || 'Login failed');
+      clearTimeout(wakingId);
+      const msg = err.message || 'Login failed';
+      if (msg.toLowerCase().includes('failed to fetch')) {
+        toast.error('Server is waking up — wait a few seconds and try again');
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setBusy(false);
     }
   };
 
-  const loginAs = async (email: string) => {
-    setBusy(true);
-    try {
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    wrap(async () => {
+      await login(email, password);
+      toast.success('Welcome back');
+    });
+  };
+
+  const loginAs = (email: string) =>
+    wrap(async () => {
       await login(email, DEMO_PASSWORD);
       toast.success(`Logged in as ${email}`);
-    } catch (err: any) {
-      toast.error(err.message || 'Login failed');
-    } finally {
-      setBusy(false);
-    }
-  };
+    });
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
