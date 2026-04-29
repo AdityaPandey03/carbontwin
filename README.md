@@ -30,6 +30,7 @@ Every email, AI query, video call and streaming hour has a real-world carbon cos
 |  |  |
 |---|---|
 | 📊 **Track** | Every digital activity → kg CO₂ → ₹ social cost via a calibrated carbon engine |
+| 🔐 **Auth** | Real signup / login with JWT + bcrypt; 6 seeded demo accounts share the password `demo1234` |
 | 🚦 **Budget** | Daily / weekly thresholds with 4-tier status (Safe ✅ / Warning ⚠️ / Critical 🔴 / Exceeded 🚨) |
 | 🚨 **Alert** | Real-time alerts on threshold breach + anomaly-based usage spike detection |
 | 🤖 **Coach** | Pattern-based AI recommendations, ranked by priority + confidence, with explainable rationale |
@@ -169,6 +170,11 @@ VITE_API_URL=http://localhost:4000
 
 ```
 GET    /health                            health probe
+
+# Auth
+POST   /api/auth/signup                   { name, email, password, company? }
+POST   /api/auth/login                    { email, password }
+GET    /api/auth/me                       requires Authorization: Bearer <jwt>
 
 # Users
 GET    /api/users                         list seeded users

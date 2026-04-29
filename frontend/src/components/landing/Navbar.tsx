@@ -3,35 +3,40 @@ import { Link } from 'react-router-dom';
 import { Leaf, Menu, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../../contexts/AuthContext';
+
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user } = useAuth();
+
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const scroll = (id: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setMobileMenuOpen(false);
+  };
+
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-background/80 backdrop-blur-md border-b border-border' : 'bg-transparent'}`}>
-      
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        isScrolled ? 'bg-background/80 backdrop-blur-md border-b border-border' : 'bg-transparent'
+      }`}
+    >
       <div className="container mx-auto px-4 h-20 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 group">
           <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 group-hover:bg-emerald-500/20 transition-colors">
             <Leaf className="w-5 h-5 text-emerald-500" />
             <motion.div
               className="absolute inset-0 rounded-xl border border-emerald-500/50"
-              animate={{
-                scale: [1, 1.1, 1],
-                opacity: [0.5, 0, 0.5]
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity
-              }} />
-            
+              animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
           </div>
           <span className="text-xl font-bold tracking-tight text-foreground">
             Carbon<span className="text-emerald-500">Twin</span>
@@ -42,104 +47,113 @@ export function Navbar() {
         <nav className="hidden md:flex items-center gap-8">
           <a
             href="#features"
-            className="text-sm font-medium text-muted-foreground hover:text-emerald-400 transition-colors">
-            
+            onClick={scroll('features')}
+            className="text-sm font-medium text-muted-foreground hover:text-emerald-400 transition-colors"
+          >
             Features
           </a>
           <a
             href="#how-it-works"
-            className="text-sm font-medium text-muted-foreground hover:text-emerald-400 transition-colors">
-            
+            onClick={scroll('how-it-works')}
+            className="text-sm font-medium text-muted-foreground hover:text-emerald-400 transition-colors"
+          >
             How it Works
           </a>
           <a
             href="#enterprise"
-            className="text-sm font-medium text-muted-foreground hover:text-emerald-400 transition-colors">
-            
+            onClick={scroll('enterprise')}
+            className="text-sm font-medium text-muted-foreground hover:text-emerald-400 transition-colors"
+          >
             Enterprise
           </a>
           <div className="flex items-center gap-4 ml-4">
-            <Link to="/dashboard">
-              <Button
-                variant="ghost"
-                className="text-muted-foreground hover:text-foreground">
-                
-                Log in
-              </Button>
-            </Link>
-            <Link to="/dashboard">
-              <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-                Start Free Trial
-              </Button>
-            </Link>
+            {user ? (
+              <Link to="/dashboard">
+                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                  Open Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+                    Log in
+                  </Button>
+                </Link>
+                <Link to="/signup">
+                  <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                    Start Free Trial
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </nav>
 
         {/* Mobile Toggle */}
         <button
           className="md:hidden text-foreground p-2"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-          
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        >
           {mobileMenuOpen ? <X /> : <Menu />}
         </button>
       </div>
 
       {/* Mobile Menu */}
       <AnimatePresence>
-        {mobileMenuOpen &&
-        <motion.div
-          initial={{
-            opacity: 0,
-            height: 0
-          }}
-          animate={{
-            opacity: 1,
-            height: 'auto'
-          }}
-          exit={{
-            opacity: 0,
-            height: 0
-          }}
-          className="md:hidden bg-background border-b border-border overflow-hidden">
-          
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden bg-background border-b border-border overflow-hidden"
+          >
             <div className="flex flex-col px-4 py-6 gap-4">
               <a
-              href="#features"
-              className="text-lg font-medium text-foreground py-2 border-b border-border/50"
-              onClick={() => setMobileMenuOpen(false)}>
-              
+                href="#features"
+                onClick={scroll('features')}
+                className="text-lg font-medium text-foreground py-2 border-b border-border/50"
+              >
                 Features
               </a>
               <a
-              href="#how-it-works"
-              className="text-lg font-medium text-foreground py-2 border-b border-border/50"
-              onClick={() => setMobileMenuOpen(false)}>
-              
+                href="#how-it-works"
+                onClick={scroll('how-it-works')}
+                className="text-lg font-medium text-foreground py-2 border-b border-border/50"
+              >
                 How it Works
               </a>
               <a
-              href="#enterprise"
-              className="text-lg font-medium text-foreground py-2 border-b border-border/50"
-              onClick={() => setMobileMenuOpen(false)}>
-              
+                href="#enterprise"
+                onClick={scroll('enterprise')}
+                className="text-lg font-medium text-foreground py-2 border-b border-border/50"
+              >
                 Enterprise
               </a>
               <div className="flex flex-col gap-3 mt-4">
-                <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="outline" className="w-full">
-                    Log in
-                  </Button>
-                </Link>
-                <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
-                    Start Free Trial
-                  </Button>
-                </Link>
+                {user ? (
+                  <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
+                      Open Dashboard
+                    </Button>
+                  </Link>
+                ) : (
+                  <>
+                    <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="outline" className="w-full">Log in</Button>
+                    </Link>
+                    <Link to="/signup" onClick={() => setMobileMenuOpen(false)}>
+                      <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
+                        Start Free Trial
+                      </Button>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </motion.div>
-        }
+        )}
       </AnimatePresence>
-    </header>);
-
+    </header>
+  );
 }

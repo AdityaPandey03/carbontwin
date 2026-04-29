@@ -48,21 +48,21 @@ export function HeroSection() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4">
-            <Link to="/dashboard">
+            <Link to="/signup">
               <Button
                 size="lg"
                 className="h-14 px-8 text-base bg-emerald-600 hover:bg-emerald-700 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all hover:shadow-[0_0_30px_rgba(16,185,129,0.6)]">
-                
-                Enter Dashboard <ArrowRight className="ml-2 w-5 h-5" />
+                Start Free Trial <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-14 px-8 text-base border-border hover:bg-secondary">
-              
-              View Enterprise Demo
-            </Button>
+            <Link to="/login">
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-14 px-8 text-base border-border hover:bg-secondary">
+                Try Live Demo
+              </Button>
+            </Link>
           </div>
 
           <div className="flex items-center gap-8 pt-4 border-t border-border/50">

@@ -13,8 +13,11 @@ import { LogActivity } from '../components/dashboard/LogActivity';
 import { Heatmap } from '../components/dashboard/Heatmap';
 import { StreakCard } from '../components/dashboard/StreakCard';
 import { Toaster } from '../components/ui/sonner';
+import { useAuth } from '../contexts/AuthContext';
 
 export function DashboardPage() {
+  const { user } = useAuth();
+
   useEffect(() => {
     document.documentElement.classList.add('dark');
   }, []);
@@ -28,10 +31,10 @@ export function DashboardPage() {
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-              <p className="text-muted-foreground">
-                Welcome back. Here's your carbon impact today.
-              </p>
+              <h1 className="text-3xl font-bold tracking-tight">
+                {user ? `Hi, ${user.name.split(' ')[0]}` : 'Dashboard'}
+              </h1>
+              <p className="text-muted-foreground">Welcome back. Here's your carbon impact today.</p>
             </div>
             <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full">
               <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -50,13 +53,13 @@ export function DashboardPage() {
           </div>
 
           {/* Trend chart + Alerts */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div id="alerts" className="grid grid-cols-1 lg:grid-cols-3 gap-6 scroll-mt-24">
             <ImpactChart />
             <AlertsPanel />
           </div>
 
           {/* Log activity + Heatmap */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div id="log-activity" className="grid grid-cols-1 lg:grid-cols-3 gap-6 scroll-mt-24">
             <div className="lg:col-span-2">
               <LogActivity />
             </div>
@@ -66,10 +69,14 @@ export function DashboardPage() {
           {/* Simulator + Recommendations + Leaderboard */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
-              <WhatIfSimulator />
-              <ActionCenter />
+              <div id="simulator" className="scroll-mt-24">
+                <WhatIfSimulator />
+              </div>
+              <div id="ai-coach" className="scroll-mt-24">
+                <ActionCenter />
+              </div>
             </div>
-            <div className="lg:col-span-1">
+            <div id="leaderboard" className="lg:col-span-1 scroll-mt-24">
               <Leaderboard />
             </div>
           </div>

@@ -1,7 +1,11 @@
+import bcrypt from 'bcryptjs';
 import { User } from '../models/User';
 import { Activity, ActivityType } from '../models/Activity';
 import { Threshold } from '../models/Threshold';
 import { computeCarbon } from '../services/carbonEngine';
+
+/** Demo password for every seeded user — see README. */
+const DEMO_PASSWORD = 'demo1234';
 
 interface SeedUser {
   name: string;
@@ -45,13 +49,27 @@ const seededRand = (seed: number) => {
 
 export const seedIfEmpty = async () => {
   const existing = await User.countDocuments();
-  if (existing > 0) return;
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+
+  if (existing > 0) {
+    // Migration: backfill demo password on any seeded user that's missing one.
+    const seedEmails = SEED_USERS.map((u) => u.email);
+    const need = await User.find({ email: { $in: seedEmails }, passwordHash: { $exists: false } });
+    if (need.length > 0) {
+      console.log(`🔑 Backfilling demo password on ${need.length} legacy seeded user(s)`);
+      await User.updateMany(
+        { email: { $in: seedEmails }, passwordHash: { $exists: false } },
+        { $set: { passwordHash } },
+      );
+    }
+    return;
+  }
 
   console.log('🌱 Seeding demo data…');
   const rand = seededRand(42);
 
   for (const u of SEED_USERS) {
-    const user = await User.create(u);
+    const user = await User.create({ ...u, passwordHash });
     await Threshold.create({
       userId: user._id,
       dailyLimit: u.ecoScore >= 80 ? 0.5 : u.ecoScore >= 60 ? 0.6 : 0.7,
@@ -102,4 +120,5 @@ export const seedIfEmpty = async () => {
   }
 
   console.log(`🌱 Seeded ${SEED_USERS.length} users with 14 days of activity each`);
+  console.log(`🔑 All seeded users share the demo password: "${DEMO_PASSWORD}"`);
 };

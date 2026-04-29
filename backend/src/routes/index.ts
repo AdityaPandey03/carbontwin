@@ -11,8 +11,18 @@ import { getTeamView } from '../controllers/teamController';
 import { listUsers, createUser, getUser } from '../controllers/userController';
 import { handleChat } from '../controllers/chatController';
 import { exportActivitiesCsv } from '../controllers/exportController';
+import { signup, login, me } from '../controllers/authController';
+import { attachUser, requireAuth } from '../middleware/auth';
 
 const r = Router();
+
+// Make req.userId available to all routes when a Bearer token is present
+r.use(attachUser);
+
+// auth
+r.post('/auth/signup', signup);
+r.post('/auth/login', login);
+r.get('/auth/me', requireAuth, me);
 
 // users
 r.get('/users', listUsers);

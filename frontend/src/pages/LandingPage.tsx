@@ -5,24 +5,27 @@ import { FeaturesSection } from '../components/landing/FeaturesSection';
 import { StatsSection } from '../components/landing/StatsSection';
 import { CTASection } from '../components/landing/CTASection';
 import { Footer } from '../components/landing/Footer';
+
 export function LandingPage() {
-  // Ensure dark mode is active for the landing page
   useEffect(() => {
     document.documentElement.classList.add('dark');
-    return () => {
-
-      // We'll keep dark mode for the whole app as requested
-    };}, []);
+  }, []);
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-emerald-500/30">
       <Navbar />
       <main>
         <HeroSection />
-        <StatsSection />
-        <FeaturesSection />
-        <CTASection />
+        <section id="features">
+          <FeaturesSection />
+        </section>
+        <section id="how-it-works">
+          <StatsSection />
+        </section>
+        <section id="enterprise">
+          <CTASection />
+        </section>
       </main>
       <Footer />
-    </div>);
-
+    </div>
+  );
 }

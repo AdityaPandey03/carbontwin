@@ -33,21 +33,21 @@ export function CTASection() {
           </p>
 
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Link to="/dashboard">
+            <Link to="/signup">
               <Button
                 size="lg"
                 className="h-14 px-8 text-lg bg-emerald-600 hover:bg-emerald-700 text-white w-full sm:w-auto">
-                
                 Start Free Trial <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-14 px-8 text-lg border-emerald-500/30 hover:bg-emerald-500/10 w-full sm:w-auto">
-              
-              Schedule Demo
-            </Button>
+            <a href="mailto:pandey.aditya4272@gmail.com?subject=CarbonTwin%20—%20Schedule%20a%20Demo&body=Hi%2C%20I%27d%20like%20to%20schedule%20a%20demo%20of%20CarbonTwin.%0A%0ACompany%3A%0ATeam%20size%3A%0APreferred%20time%3A%0A">
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-14 px-8 text-lg border-emerald-500/30 hover:bg-emerald-500/10 w-full sm:w-auto">
+                Schedule Demo
+              </Button>
+            </a>
           </div>
           <p className="mt-6 text-sm text-muted-foreground">
             No credit card required. 14-day free trial for up to 50 users.

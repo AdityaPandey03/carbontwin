@@ -13,6 +13,7 @@ import {
   MOCK_SUGGESTIONS,
   MOCK_ACTIVITY_LOG,
 } from './mockData';
+import { authStore } from './auth';
 
 const API_URL =
   (import.meta as any).env?.VITE_API_URL || 'http://localhost:4000';
@@ -20,10 +21,18 @@ const API_URL =
 let cachedUserId: string | null = null;
 let backendAvailable: boolean | null = null;
 
+/** Reset cached user — call after login/logout. */
+export const resetApiUser = () => {
+  cachedUserId = null;
+};
+
 const fetchJson = async (path: string, init?: RequestInit) => {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const tok = authStore.getToken();
+  if (tok) headers.Authorization = `Bearer ${tok}`;
   const res = await fetch(`${API_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
     ...init,
+    headers: { ...headers, ...(init?.headers as Record<string, string> ?? {}) },
   });
   if (!res.ok) throw new Error(`API ${res.status}`);
   return res.json();
@@ -43,9 +52,15 @@ const probe = async () => {
 
 const ensureUserId = async (): Promise<string> => {
   if (cachedUserId) return cachedUserId;
+  // Prefer the logged-in user's id from the auth store.
+  const authed = authStore.getUser();
+  if (authed?._id) {
+    cachedUserId = authed._id;
+    return authed._id;
+  }
+  // Fallback for landing page / unauthenticated flows: highest eco-score seeded user.
   const users = await fetchJson('/api/users');
   if (!Array.isArray(users) || users.length === 0) throw new Error('no users');
-  // Prefer the highest eco-score user as the "current" demo user.
   const top = [...users].sort((a, b) => b.ecoScore - a.ecoScore)[0];
   cachedUserId = top._id;
   return top._id;
