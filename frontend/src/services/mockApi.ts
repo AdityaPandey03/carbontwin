@@ -1,0 +1,285 @@
+/**
+ * Real-API client (with fallback to mock data).
+ *
+ * Talks to the Carbon Twin backend at VITE_API_URL (default: http://localhost:4000).
+ * If the backend is unreachable, every call falls back to the original mock data
+ * so the UI keeps working in offline / demo-only mode.
+ */
+
+import {
+  MOCK_USER,
+  MOCK_CHART_DATA,
+  MOCK_LEADERBOARD,
+  MOCK_SUGGESTIONS,
+  MOCK_ACTIVITY_LOG,
+} from './mockData';
+
+const API_URL =
+  (import.meta as any).env?.VITE_API_URL || 'http://localhost:4000';
+
+let cachedUserId: string | null = null;
+let backendAvailable: boolean | null = null;
+
+const fetchJson = async (path: string, init?: RequestInit) => {
+  const res = await fetch(`${API_URL}${path}`, {
+    headers: { 'Content-Type': 'application/json' },
+    ...init,
+  });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  return res.json();
+};
+
+const probe = async () => {
+  if (backendAvailable !== null) return backendAvailable;
+  try {
+    await fetchJson('/health');
+    backendAvailable = true;
+  } catch {
+    backendAvailable = false;
+    console.warn('[mockApi] backend unreachable — using mock data');
+  }
+  return backendAvailable;
+};
+
+const ensureUserId = async (): Promise<string> => {
+  if (cachedUserId) return cachedUserId;
+  const users = await fetchJson('/api/users');
+  if (!Array.isArray(users) || users.length === 0) throw new Error('no users');
+  // Prefer the highest eco-score user as the "current" demo user.
+  const top = [...users].sort((a, b) => b.ecoScore - a.ecoScore)[0];
+  cachedUserId = top._id;
+  return top._id;
+};
+
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+
+const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+export const api = {
+  dashboard: {
+    getMetrics: async () => {
+      if (!(await probe())) {
+        await delay(300);
+        return { user: MOCK_USER, chartData: MOCK_CHART_DATA, recentActivity: MOCK_ACTIVITY_LOG };
+      }
+      try {
+        const userId = await ensureUserId();
+        const d = await fetchJson(`/api/dashboard/${userId}`);
+
+        const user = {
+          id: d.user.id,
+          name: d.user.name,
+          email: d.user.email,
+          organizationId: d.user.company,
+          totalCarbonSaved: Number((d.totalCarbon ?? 0).toFixed(2)),
+          totalRupeesSaved: Number((d.totalCost ?? 0).toFixed(2)),
+          ecoScore: d.ecoScore,
+          currentStreak: d.streak?.currentStreak ?? 0,
+          avatarUrl: `https://i.pravatar.cc/150?u=${encodeURIComponent(d.user.email)}`,
+        };
+
+        const chartData = (d.dailyTrend ?? []).map((p: any) => ({
+          date: formatDate(p.date),
+          co2: Number(p.carbon.toFixed(2)),
+          cost: Number(p.cost.toFixed(2)),
+          saved: Number(((p.carbon * -1 + 1.5) * 0.5).toFixed(2)),
+        }));
+
+        const recentActivity = (d.alerts ?? []).slice(0, 6).map((a: any, i: number) => ({
+          id: a._id ?? `a_${i}`,
+          category: a.type === 'critical' || a.type === 'warning' ? 'Threshold' : 'System',
+          actionName: a.message,
+          carbonImpact: 0,
+          costImpact: 0,
+          timestamp: a.timestamp,
+        }));
+
+        return { user, chartData, recentActivity, raw: d };
+      } catch (e) {
+        console.warn('[mockApi.getMetrics] fallback', e);
+        return { user: MOCK_USER, chartData: MOCK_CHART_DATA, recentActivity: MOCK_ACTIVITY_LOG };
+      }
+    },
+
+    getLeaderboard: async () => {
+      if (!(await probe())) {
+        await delay(200);
+        return MOCK_LEADERBOARD;
+      }
+      try {
+        const userId = await ensureUserId();
+        const rows = await fetchJson('/api/leaderboard');
+        return rows.map((r: any) => ({
+          id: r.userId,
+          name: r.name,
+          score: r.ecoScore,
+          trend: r.streak >= 3 ? 'up' : r.streak === 0 ? 'down' : 'same',
+          avatar: `https://i.pravatar.cc/150?u=${encodeURIComponent(r.userId)}`,
+          isCurrentUser: r.userId === userId,
+        }));
+      } catch (e) {
+        console.warn('[mockApi.getLeaderboard] fallback', e);
+        return MOCK_LEADERBOARD;
+      }
+    },
+  },
+
+  suggestions: {
+    getDaily: async () => {
+      if (!(await probe())) {
+        await delay(400);
+        return MOCK_SUGGESTIONS;
+      }
+      try {
+        const userId = await ensureUserId();
+        const recs = await fetchJson(`/api/recommendations/${userId}`);
+        return recs.map((r: any, i: number) => ({
+          id: `rec_${i}_${r.title.replace(/\s+/g, '_').slice(0, 16)}`,
+          text: `${r.title}. ${r.description}`,
+          potentialSavingsKg: Number((r.carbonSaving ?? 0).toFixed(2)),
+          potentialSavingsInr: Number((r.costSaving ?? 0).toFixed(0)),
+          category: r.category,
+          status: 'pending',
+          confidence: r.confidenceScore,
+          priority: r.priorityScore,
+        }));
+      } catch (e) {
+        console.warn('[mockApi.getDaily] fallback', e);
+        return MOCK_SUGGESTIONS;
+      }
+    },
+    actionSuggestion: async (id: string, action: 'accept' | 'dismiss') => {
+      await delay(200);
+      return { success: true, id, action };
+    },
+  },
+
+  simulator: {
+    whatIf: async (habit: string, value: number) => {
+      // Stateless local calculation — fast for sliders.
+      let savingsPercent = 0;
+      let carbonSaved = 0;
+      let rupeesSaved = 0;
+      switch (habit) {
+        case 'videoQuality':
+          savingsPercent = value * 0.4;
+          carbonSaved = value * 0.05;
+          rupeesSaved = value * 0.8;
+          break;
+        case 'acTemp':
+          savingsPercent = value * 0.6;
+          carbonSaved = value * 0.12;
+          rupeesSaved = value * 1.5;
+          break;
+        case 'zombieTabs':
+          savingsPercent = value * 0.15;
+          carbonSaved = value * 0.02;
+          rupeesSaved = value * 0.3;
+          break;
+      }
+      return { savingsPercent, carbonSavedKg: carbonSaved, rupeesSavedInr: rupeesSaved };
+    },
+
+    /** Run the real simulation against the backend. */
+    runReal: async (changes: Array<{ type: string; reductionPercent: number }>) => {
+      if (!(await probe())) return null;
+      try {
+        const userId = await ensureUserId();
+        return await fetchJson('/api/simulate', {
+          method: 'POST',
+          body: JSON.stringify({ userId, changes }),
+        });
+      } catch (e) {
+        console.warn('[mockApi.runReal] error', e);
+        return null;
+      }
+    },
+  },
+
+  threshold: {
+    get: async () => {
+      if (!(await probe())) return null;
+      try {
+        const userId = await ensureUserId();
+        return await fetchJson(`/api/threshold/${userId}`);
+      } catch {
+        return null;
+      }
+    },
+    set: async (dailyLimit: number, weeklyLimit: number) => {
+      if (!(await probe())) return null;
+      const userId = await ensureUserId();
+      return fetchJson('/api/threshold', {
+        method: 'POST',
+        body: JSON.stringify({ userId, dailyLimit, weeklyLimit }),
+      });
+    },
+  },
+
+  alerts: {
+    list: async () => {
+      if (!(await probe())) return [];
+      try {
+        const userId = await ensureUserId();
+        return await fetchJson(`/api/alerts/${userId}`);
+      } catch {
+        return [];
+      }
+    },
+  },
+
+  activities: {
+    log: async (type: string, usage: number) => {
+      if (!(await probe())) return null;
+      const userId = await ensureUserId();
+      return fetchJson('/api/activities', {
+        method: 'POST',
+        body: JSON.stringify({ userId, type, usage }),
+      });
+    },
+    list: async () => {
+      if (!(await probe())) return [];
+      try {
+        const userId = await ensureUserId();
+        return await fetchJson(`/api/activities/${userId}?limit=100`);
+      } catch {
+        return [];
+      }
+    },
+  },
+
+  chat: {
+    sendMessage: async (message: string) => {
+      // Local rule-based stub — backend has no chat endpoint.
+      await delay(800);
+      const m = message.toLowerCase();
+      if (m.includes('score') && m.includes('drop')) {
+        return {
+          text:
+            "Listen up! Your Eco-Score dropped because you left 45 tabs open overnight while streaming a 4K fireplace video. That's literally burning coal to watch fake fire. Close those tabs and we'll talk.",
+          timestamp: new Date().toISOString(),
+        };
+      }
+      if (m.includes('hi') || m.includes('hello')) {
+        return {
+          text:
+            "I'm your AI Eco-Coach. I don't do small talk. I do carbon reduction. Don't mess up your streak today. What do you need?",
+          timestamp: new Date().toISOString(),
+        };
+      }
+      if (m.includes('help')) {
+        return {
+          text:
+            "Check your Action Center. I've queued AI suggestions that will save you money and CO₂ today. Execute them.",
+          timestamp: new Date().toISOString(),
+        };
+      }
+      return {
+        text:
+          'Every MB you download has a carbon cost. Stop doomscrolling and start optimising. Your footprint is higher than your peers this week.',
+        timestamp: new Date().toISOString(),
+      };
+    },
+  },
+};
