@@ -1,0 +1,25 @@
+name: Keep Render dyno warm
+
+# Render free dynos sleep after ~15 min idle (~30 s cold start = bad demo UX).
+# This pings /health every 10 min so the dyno never goes idle.
+# Costs 0 minutes against the public-repo Actions quota.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: # so you can hit "Run workflow" in the UI any time
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /health
+        run: |
+          for i in 1 2 3; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 60 https://carbontwin.onrender.com/health)
+            echo "attempt $i: HTTP $code"
+            if [ "$code" = "200" ]; then exit 0; fi
+            sleep 10
+          done
+          echo "Backend did not respond after 3 attempts"
+          exit 1
