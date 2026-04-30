@@ -8,7 +8,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { authStore } from '../services/auth';
 import { Toaster } from '../components/ui/sonner';
 
-const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:4000';
+const API_URL =
+  typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? ((import.meta as any).env?.VITE_API_URL || 'http://localhost:4000')
+    : '';
 
 interface TeamMember {
   userId: string;

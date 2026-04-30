@@ -15,8 +15,11 @@ import {
 } from './mockData';
 import { authStore } from './auth';
 
+/** Same-origin in production (Vercel rewrites /api/* to Render). Localhost gets the dev URL. */
 const API_URL =
-  (import.meta as any).env?.VITE_API_URL || 'http://localhost:4000';
+  typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? ((import.meta as any).env?.VITE_API_URL || 'http://localhost:4000')
+    : '';
 
 let cachedUserId: string | null = null;
 let backendAvailable: boolean | null = null;

@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://carbontwin.onrender.com/api/:path*" },
+    { "source": "/health", "destination": "https://carbontwin.onrender.com/health" },
+    { "source": "/((?!api/|health|assets/|.*\\.).*)", "destination": "/" }
+  ]
+}

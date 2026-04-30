@@ -1,7 +1,10 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { authStore, authApi, AuthUser } from '../services/auth';
 
-const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:4000';
+const API_URL =
+  typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? ((import.meta as any).env?.VITE_API_URL || 'http://localhost:4000')
+    : '';
 
 /**
  * Render's free tier sleeps a service after ~15 min of idle, and the first

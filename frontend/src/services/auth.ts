@@ -3,7 +3,17 @@
  * The token is kept in localStorage; mockApi.ts reads it via getToken().
  */
 
-const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:4000';
+/**
+ * In the browser we always go same-origin (e.g. /api/auth/login). In production
+ * Vercel's rewrites proxy /api/* to the Render backend. This sidesteps CORS,
+ * ad-blockers, corporate firewalls, and browser tracking-protection on
+ * third-party domains. For local dev (vite dev server on :5173) we hit the
+ * Node backend on :4000 directly.
+ */
+const API_URL =
+  typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? ((import.meta as any).env?.VITE_API_URL || 'http://localhost:4000')
+    : '';
 const TOKEN_KEY = 'carbontwin.token';
 const USER_KEY = 'carbontwin.user';
 

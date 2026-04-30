@@ -17,7 +17,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { resetApiUser } from '../../services/mockApi';
 import { authStore } from '../../services/auth';
 
-const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:4000';
+const API_URL =
+  typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? ((import.meta as any).env?.VITE_API_URL || 'http://localhost:4000')
+    : '';
 
 interface NavItem {
   icon: any;
